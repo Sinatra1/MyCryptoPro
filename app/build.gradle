@@ -1,0 +1,57 @@
+def rx_java = "1.1.10"
+def rx_android = '1.2.1'
+def rx_bindings = '0.4.0'
+
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 25
+    buildToolsVersion "26.0.1"
+    defaultConfig {
+        applicationId "ru.CryptoPro.mycryptopro"
+        minSdkVersion 21
+        targetSdkVersion 25
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    packagingOptions {
+        exclude 'META-INF/Sign.CP'
+        exclude 'META-INF/Digest.CP'
+        exclude 'META-INF/LICENSE'
+    }
+    dexOptions {
+        preDexLibraries = false
+        additionalParameters=['--core-library']
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    compile 'com.android.support:appcompat-v7:25.3.1'
+    compile 'com.android.support.constraint:constraint-layout:1.0.2'
+    testCompile 'junit:junit:4.12'
+
+    compile 'org.jbundle.util.osgi.wrapped:org.jbundle.util.osgi.wrapped.org.apache.http.client:4.1.2'
+    compile 'com.quicklib:quicklib-multidex:1.0.1'
+    compile 'com.fasterxml.jackson.jr:jackson-jr-retrofit2:2.9.0.pr4'
+
+    compile 'com.squareup.okhttp3:okhttp:3.8.1'
+
+    compile "io.reactivex:rxjava:$rx_java"
+    compile "io.reactivex:rxandroid:$rx_android"
+    compile "com.jakewharton.rxbinding:rxbinding-kotlin:$rx_bindings"
+    compile "com.jakewharton.rxbinding:rxbinding-support-v4-kotlin:$rx_bindings"
+    compile "com.jakewharton.rxbinding:rxbinding-appcompat-v7-kotlin:$rx_bindings"
+    compile "com.jakewharton.rxbinding:rxbinding-design-kotlin:$rx_bindings"
+    compile "com.jakewharton.rxbinding:rxbinding-recyclerview-v7-kotlin:$rx_bindings"
+}
