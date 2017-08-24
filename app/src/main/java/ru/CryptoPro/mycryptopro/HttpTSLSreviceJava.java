@@ -9,29 +9,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.Reader;
-import java.net.URI;
 import java.security.KeyStore;
-import java.security.SecureRandom;
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
-
-import kotlin.TypeCastException;
-import kotlin.collections.CollectionsKt;
 import kotlin.jvm.internal.Intrinsics;
-import okhttp3.ConnectionSpec;
-import okhttp3.OkHttpClient;
-import okhttp3.ResponseBody;
-import okhttp3.Call.Factory;
-import okhttp3.ConnectionSpec.Builder;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -49,12 +29,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import retrofit2.Call;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import ru.CryptoPro.JCSP.JCSP;
 import ru.CryptoPro.JCSP.support.BKSTrustStore;
-import ru.CryptoPro.mycryptopro.api.CryptoApi;
 import ru.CryptoPro.ssl.Provider;
 import ru.cprocsp.ACSP.tools.common.Constants;
 
@@ -68,7 +43,6 @@ public class HttpTSLSreviceJava {
 
     public final void execute(@NotNull Context context) {
         Intrinsics.checkParameterIsNotNull(context, "context");
-        retrofit2.Response<ResponseBody> retrofitResponse = null;
 
         HttpClient httpClient = null;
 
