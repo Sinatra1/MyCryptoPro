@@ -1,6 +1,7 @@
 package ru.CryptoPro.mycryptopro;
 
 import android.content.Context;
+import android.os.Environment;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -32,7 +33,18 @@ import okhttp3.ResponseBody;
 import okhttp3.Call.Factory;
 import okhttp3.ConnectionSpec.Builder;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.SingleClientConnManager;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -49,7 +61,7 @@ import ru.cprocsp.ACSP.tools.common.Constants;
 public class HttpTSLSreviceJava {
 
     @Nullable
-    private final long MAX_CLIENT_TIMEOUT = 3600000L;
+    private final int MAX_CLIENT_TIMEOUT = 3600000;
     private final long MAX_THREAD_TIMEOUT = 6000000L;
     @NotNull
     private final String DEFAULT_ENCODING = "windows-1251";
@@ -57,6 +69,8 @@ public class HttpTSLSreviceJava {
     public final void execute(@NotNull Context context) {
         Intrinsics.checkParameterIsNotNull(context, "context");
         retrofit2.Response<ResponseBody> retrofitResponse = null;
+
+        HttpClient httpClient = null;
 
         try {
 
@@ -68,76 +82,68 @@ public class HttpTSLSreviceJava {
 
             KeyStore ts = KeyStore.getInstance(BKSTrustStore.STORAGE_TYPE, BouncyCastleProvider.PROVIDER_NAME);
 
-            final String trustStorePath = context.getApplicationInfo().dataDir + File.separator +
+            String trustStorePath = context.getApplicationInfo().dataDir + File.separator +
                     BKSTrustStore.STORAGE_DIRECTORY + File.separator + BKSTrustStore.STORAGE_FILE_TRUST;
+
+            trustStorePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC).getAbsolutePath() + File.separator + ru.CryptoPro.JCSP.support.BKSTrustStore.STORAGE_FILE_TRUST;
 
             FileInputStream stream = new FileInputStream(trustStorePath);
 
-            ts.load(stream, BKSTrustStore.STORAGE_PASSWORD);
+            try {
+                ts.load(stream, BKSTrustStore.STORAGE_PASSWORD);
+            } catch (Exception e) {
+                Log.e(Constants.APP_LOGGER_TAG, e.getMessage(), e);
+            }
 
             KeyStore ks = null;
 
-            SSLContext sslCtx = SSLContext.getInstance(Provider.ALGORITHM, Provider.PROVIDER_NAME);
+            org.apache.http.conn.ssl.SSLSocketFactory socketFactory = new org.apache.http.conn.ssl.SSLSocketFactory(
+                    Provider.ALGORITHM, ks, "", ts, null, null);
 
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(Provider.KEYMANGER_ALG, Provider.PROVIDER_NAME);
-            tmf.init(ts);
+            socketFactory.setHostnameVerifier(
+                    org.apache.http.conn.ssl.SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
 
-            sslCtx.init(null, tmf.getTrustManagers(), null);
+            // Регистрируем HTTPS схему.
+            Scheme httpsScheme = new Scheme("https", socketFactory, 443);
 
-            javax.net.ssl.SSLSocketFactory sslFactory = sslCtx.getSocketFactory();
+            SchemeRegistry schemeRegistry = new SchemeRegistry();
+            schemeRegistry.register(httpsScheme);
 
-            X509TrustManager tm = (X509TrustManager) tmf.getTrustManagers()[0];
+            // Параметры соединения.
+            HttpParams params = new BasicHttpParams();
+            HttpConnectionParams.setSoTimeout(params, MAX_CLIENT_TIMEOUT);
+            ClientConnectionManager cm = new SingleClientConnManager(params, schemeRegistry);
+            httpClient = new DefaultHttpClient(cm, params);
 
-            ConnectionSpec spec = new ConnectionSpec.Builder(ConnectionSpec.COMPATIBLE_TLS)
-                    .tlsVersions(Provider.ALGORITHM)
-                    .cipherSuites(Provider.KEYMANGER_ALG)
-                    .allEnabledTlsVersions()
-                    .supportsTlsExtensions(false)
-                    .allEnabledCipherSuites()
-                    .build();
+            // GET-запрос.
+            HttpGet httpget = new HttpGet("https://cpca.cryptopro.ru:443");
+            HttpResponse response = httpClient.execute(httpget);
+            HttpEntity entity = response.getEntity();
 
-            OkHttpClient.Builder builder;
-            builder = new OkHttpClient.Builder();
-            builder.sslSocketFactory(sslFactory, tm);
-            builder.hostnameVerifier(org.apache.http.conn.ssl.SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-            builder.connectTimeout(MAX_CLIENT_TIMEOUT, TimeUnit.MILLISECONDS);
-            builder.readTimeout(MAX_CLIENT_TIMEOUT, TimeUnit.MILLISECONDS);
-            builder.connectionSpecs(Collections.singletonList(spec));
-            OkHttpClient okHttpClient = builder.build();
-
-            Retrofit.Builder retrofitBuilder = new Retrofit.Builder()
-                    .baseUrl("https://cpca.cryptopro.ru:443")
-                    .callFactory(okHttpClient);
-
-            Retrofit retrofit = retrofitBuilder.build();
-
-            CryptoApi cryptoApi = retrofit.create(CryptoApi.class);
-            retrofitResponse = cryptoApi.getData().execute();
-
-            int status = retrofitResponse.raw().code();
-
-            if (retrofitResponse.raw().code() != 200) {
+            int status = response.getStatusLine().getStatusCode();
+            if (status  != 200) {
                 return;
             } // if
 
-            if (retrofitResponse.body().source() != null) {
+            if (entity != null) {
 
                 // Получаем размер заголовка.
-                InputStream is = retrofitResponse.body().source().inputStream();
+                InputStream is = entity.getContent();
 
                 BufferedReader in = new BufferedReader(
                         new InputStreamReader(is, DEFAULT_ENCODING));
 
                 // Выводим ответ.
                 String line;
-                while ((line = in.readLine()) != null) {
+                while((line = in.readLine()) != null) {
+                    Log.e("wewe", line);
                 } // while
 
                 if (in != null) {
                     in.close();
                 } // if
 
-            } // if*/
+            } // if
 
         } catch (Exception e) {
             Log.e(Constants.APP_LOGGER_TAG, "Operation exception", e);
