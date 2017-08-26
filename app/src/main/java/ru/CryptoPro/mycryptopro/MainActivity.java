@@ -363,4 +363,12 @@ public class MainActivity extends FragmentActivity {
         return String.valueOf(appInfo.uid) + "." +
                 String.valueOf(appInfo.uid);
     }
+
+    @Override
+    public void onResume() {
+
+        super.onResume();
+        CSPConfig.registerActivityContext(this);
+
+    }
 }
